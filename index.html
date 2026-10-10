@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef3f8">
+  <title>Куб в дополненной реальности</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="overlay">
+    <section id="intro" class="card">
+      <span class="eyebrow">ПРАКТИЧЕСКАЯ РАБОТА 4</span>
+      <h1>Поставьте куб<br>в своей комнате</h1>
+      <p>Найдите свободное место на полу или столе. Куб размером 20 см останется там, где вы его разместите.</p>
+      <ol><li>Нажмите «Начать AR».</li><li>Медленно двигайте телефон, пока не появится кольцо.</li><li>Наведите кольцо на место и коснитесь экрана.</li></ol>
+      <p id="support">Проверяем поддержку AR…</p>
+      <button id="start" disabled>Начать AR</button>
+      <button id="preview" class="secondary">Посмотреть куб без камеры</button>
+      <small>Для AR нужен совместимый телефон или WebXR-эмулятор.</small>
+    </section>
+    <section id="hud" class="card" hidden>
+      <span id="mode" class="eyebrow">ДОПОЛНЕННАЯ РЕАЛЬНОСТЬ</span>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="place" disabled>Поставить куб</button><button id="reset" class="secondary" hidden>Разместить заново</button><button id="exit" class="secondary">Выйти</button></div>
+    </section>
+    <p id="error" role="alert" hidden></p>
+  </main>
+  <script type="module">
+    import('./app.js').catch(error => {
+      document.querySelector('#support').textContent = 'Не удалось загрузить 3D-сцену. Обновите страницу в современном браузере.';
+      document.querySelector('#error').hidden = false;
+      document.querySelector('#error').textContent = error.message;
+    });
+  </script>
+</body>
+</html>
