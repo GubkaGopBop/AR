@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import { createOfficeChair } from './chair.js';
 import { applyHitPose, placeObject } from './placement.js';
 
 const $ = id => document.getElementById(id);
@@ -15,16 +16,12 @@ const light = new THREE.DirectionalLight(0xffffff, 2);
 light.position.set(2, 4, 3);
 scene.add(light);
 
-// Geometry starts at y=0 so its bottom touches the detected plane.
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(0.2, 0.2, 0.2).translate(0, 0.1, 0),
-  new THREE.MeshStandardMaterial({ color: 0x367bea, roughness: 0.55 })
-);
-cube.matrixAutoUpdate = false;
-cube.visible = false;
-scene.add(cube);
+const chair = createOfficeChair();
+chair.matrixAutoUpdate = false;
+chair.visible = false;
+scene.add(chair);
 const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.115, 0.14, 48).rotateX(-Math.PI / 2),
+  new THREE.RingGeometry(0.29, 0.32, 48).rotateX(-Math.PI / 2),
   new THREE.MeshBasicMaterial({ color: 0x22bc91, side: THREE.DoubleSide })
 );
 reticle.matrixAutoUpdate = false;
@@ -49,14 +46,14 @@ function showError(text) {
   $('error').hidden = !text;
 }
 function controls() {
-  $('place').disabled = !reticle.visible || cube.visible;
-  $('place').hidden = preview || cube.visible;
-  $('reset').hidden = preview || !cube.visible;
+  $('place').disabled = !reticle.visible || chair.visible;
+  $('place').hidden = preview || chair.visible;
+  $('reset').hidden = preview || !chair.visible;
 }
 function place() {
   if (!session || !renderer.xr.isPresenting || session.visibilityState !== 'visible') return;
-  if (placeObject(cube, reticle)) {
-    status('Куб размещён. Обойдите его и посмотрите с разных сторон.');
+  if (placeObject(chair, reticle)) {
+    status('Кресло размещено.');
     controls();
   }
 }
@@ -65,7 +62,7 @@ function cleanup(endedSession) {
   hitTestSource?.cancel();
   hitTestSource = null;
   session = null;
-  cube.visible = false;
+  chair.visible = false;
   reticle.visible = false;
   document.body.classList.remove('ar');
   $('intro').hidden = false;
@@ -104,12 +101,12 @@ async function startAR() {
     await renderer.xr.setSession(session);
     if (session !== requestedSession) return;
     trackingError = false;
-    cube.visible = false;
+    chair.visible = false;
     document.body.classList.add('ar');
     $('intro').hidden = true;
     $('hud').hidden = false;
-    $('mode').textContent = 'ДОПОЛНЕННАЯ РЕАЛЬНОСТЬ';
-    status('Наведите телефон на пол или стол и медленно двигайте его.');
+    $('status').hidden = false;
+    status('Наведите телефон на пол.');
     controls();
   } catch (error) {
     if (requestedSession) {
@@ -131,10 +128,10 @@ async function startAR() {
 }
 
 function reset() {
-  cube.visible = false;
+  chair.visible = false;
   reticle.visible = false;
   trackingError = false;
-  status('Найдите новое место. Дождитесь появления кольца.');
+  status('Найдите новое место.');
   controls();
 }
 function startPreview() {
@@ -144,11 +141,10 @@ function startPreview() {
   document.body.classList.add('preview');
   $('intro').hidden = true;
   $('hud').hidden = false;
-  $('mode').textContent = 'ПРОСМОТР БЕЗ КАМЕРЫ';
-  status('Куб 20 × 20 × 20 см. Проведите по экрану, чтобы повернуть вид.');
-  cube.matrix.identity();
-  cube.matrixWorldNeedsUpdate = true;
-  cube.visible = true;
+  $('status').hidden = true;
+  chair.matrix.identity();
+  chair.matrixWorldNeedsUpdate = true;
+  chair.visible = true;
   scene.background = new THREE.Color(0xeef3f8);
   controls();
 }
@@ -157,7 +153,7 @@ async function exit() {
     try { await session.end(); } catch { showError('Не удалось выйти. Используйте кнопку выхода из AR в браузере.'); }
   } else {
     preview = false;
-    cube.visible = false;
+    chair.visible = false;
     scene.background = null;
     document.body.classList.remove('preview');
     $('intro').hidden = false;
@@ -170,7 +166,7 @@ $('preview').addEventListener('click', startPreview);
 $('place').addEventListener('click', place);
 $('reset').addEventListener('click', reset);
 $('exit').addEventListener('click', exit);
-// UI actions must not also produce an XR select and accidentally place a cube.
+// UI actions must not also produce an XR select and accidentally place a chair.
 $('overlay').addEventListener('beforexrselect', event => {
   if (event.target.closest('button, #intro')) event.preventDefault();
 });
@@ -200,15 +196,15 @@ renderer.setAnimationLoop((time, frame) => {
       const referenceSpace = renderer.xr.getReferenceSpace();
       const viewerPose = referenceSpace && frame.getViewerPose(referenceSpace);
       if (!viewerPose) {
-        status('Отслеживание потеряно. Медленно наведите телефон на знакомое место.');
-      } else if (cube.visible) {
-        status('Куб размещён. Обойдите его и посмотрите с разных сторон.');
+        status('Наведите телефон на прежнее место.');
+      } else if (chair.visible) {
+        status('Кресло размещено.');
       } else if (!trackingError) {
         try {
           const results = frame.getHitTestResults(hitTestSource);
           const pose = results.length ? results[0].getPose(referenceSpace) : null;
           applyHitPose(reticle, pose);
-          status(pose ? 'Место найдено. Коснитесь экрана или нажмите «Поставить куб».' : 'Ищем поверхность. Медленно двигайте телефон над полом или столом.');
+          status(pose ? 'Коснитесь экрана, чтобы поставить кресло.' : 'Ищем пол. Медленно двигайте телефон.');
         } catch {
           trackingError = true;
           status('Поиск поверхности недоступен. Выйдите и начните AR снова.');
@@ -218,8 +214,8 @@ renderer.setAnimationLoop((time, frame) => {
     controls();
   }
   if (preview) {
-    camera.position.set(Math.sin(angle) * 0.65, 0.42, Math.cos(angle) * 0.65);
-    camera.lookAt(0, 0.1, 0);
+    camera.position.set(Math.sin(angle) * 2.0, 1.25, Math.cos(angle) * 2.0);
+    camera.lookAt(0, 0.6, 0);
   }
   renderer.render(scene, camera);
 });
@@ -230,12 +226,13 @@ async function checkSupport() {
     return;
   }
   if (!navigator.xr) {
-    $('support').textContent = 'В этом браузере AR недоступна. Откройте страницу на совместимом телефоне.';
+    $('support').textContent = 'AR недоступна в этом браузере.';
     return;
   }
   try {
     supported = await navigator.xr.isSessionSupported('immersive-ar');
-    $('support').textContent = supported ? 'AR доступна. Можно начинать.' : 'Устройство не поддерживает AR. Доступен просмотр куба без камеры.';
+    $('support').textContent = supported ? 'AR доступна. Можно начинать.' : 'AR недоступна на этом устройстве.';
+    $('support').hidden = supported;
     $('start').disabled = !supported;
   } catch {
     $('support').textContent = 'Не удалось проверить AR. Проверьте настройки браузера.';
