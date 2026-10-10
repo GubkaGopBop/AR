@@ -62,7 +62,8 @@ export function createOfficeChair() {
   add(new THREE.CylinderGeometry(0.032, 0.04, 0.21, 24), frame, 0, 0.265, 0);
   add(new THREE.CylinderGeometry(0.021, 0.021, 0.15, 24), metal, 0, 0.42, 0);
   add(roundedBox(0.3, 0.045, 0.27), frame, 0, 0.46, 0);
-  add(roundedBox(0.51, 0.085, 0.48, 0.025), cushion, 0, 0.52, 0.015);
+  const seat = add(roundedBox(0.51, 0.085, 0.48, 0.025), cushion, 0, 0.52, 0.015);
+  seat.name = 'seat';
   bar([0, 0.46, -0.16], [0, 0.79, -0.27], 0.025, frame);
 
   const back = new THREE.Group();

@@ -37,6 +37,7 @@ let angle = 0.65;
 let dragging = false;
 let lastX = 0;
 let trackingError = false;
+let searchStarted = 0;
 
 function status(text) {
   if ($('status').textContent !== text) $('status').textContent = text;
@@ -46,6 +47,7 @@ function showError(text) {
   $('error').hidden = !text;
 }
 function controls() {
+  $('aim').hidden = preview || !session || chair.visible;
   $('place').disabled = !reticle.visible || chair.visible;
   $('place').hidden = preview || chair.visible;
   $('reset').hidden = preview || !chair.visible;
@@ -101,12 +103,13 @@ async function startAR() {
     await renderer.xr.setSession(session);
     if (session !== requestedSession) return;
     trackingError = false;
+    searchStarted = performance.now();
     chair.visible = false;
     document.body.classList.add('ar');
     $('intro').hidden = true;
     $('hud').hidden = false;
     $('status').hidden = false;
-    status('Наведите телефон на пол.');
+    status('Наведите центр экрана на пол и двигайте телефон в стороны.');
     controls();
   } catch (error) {
     if (requestedSession) {
@@ -131,6 +134,7 @@ function reset() {
   chair.visible = false;
   reticle.visible = false;
   trackingError = false;
+  searchStarted = performance.now();
   status('Найдите новое место.');
   controls();
 }
@@ -204,7 +208,9 @@ renderer.setAnimationLoop((time, frame) => {
           const results = frame.getHitTestResults(hitTestSource);
           const pose = results.length ? results[0].getPose(referenceSpace) : null;
           applyHitPose(reticle, pose);
-          status(pose ? 'Коснитесь экрана, чтобы поставить кресло.' : 'Ищем пол. Медленно двигайте телефон.');
+          status(pose ? 'Коснитесь экрана, чтобы поставить кресло.' :
+            performance.now() - searchStarted > 8000 ? 'Добавьте света и наведитесь на участок пола с рисунком.' :
+            'Ищем пол. Двигайте телефон в стороны.');
         } catch {
           trackingError = true;
           status('Поиск поверхности недоступен. Выйдите и начните AR снова.');
